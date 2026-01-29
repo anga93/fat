@@ -19,6 +19,9 @@ from typing import Any, Dict
 import torch
 import torch.distributed as dist
 
+# Suppress Brevitas pkg_resources deprecation warning
+warnings.filterwarnings("ignore", category=UserWarning, module="brevitas")
+
 from datasets import get_dataset
 from models import get_model
 from utils import get_device, load_config, Trainer, set_seed
