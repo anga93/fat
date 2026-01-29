@@ -11,7 +11,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import warnings
 from typing import Any, Dict
+
+# Suppress Brevitas pkg_resources deprecation warning
+warnings.filterwarnings("ignore", category=UserWarning, module="brevitas")
 
 from datasets import get_dataset
 from models import get_model
