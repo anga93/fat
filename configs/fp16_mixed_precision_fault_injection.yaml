@@ -1,0 +1,81 @@
+# Example configuration for FP16 fault injection with mixed-precision training
+# For use with FP16 models or mixed-precision training
+
+# Model configuration
+model:
+  architecture: "resnet18"
+  num_classes: 10
+  pretrained: false
+
+# Dataset configuration
+dataset:
+  name: "cifar10"
+  data_dir: "./data"
+  batch_size: 128
+  num_workers: 4
+
+# Training configuration
+training:
+  epochs: 100
+  device: "cuda"
+  use_amp: true                       # Enable Automatic Mixed Precision (FP16)
+
+# Optimizer configuration
+optimizer:
+  type: "sgd"
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0005
+
+# Scheduler configuration
+scheduler:
+  type: "cosine"
+  warmup_epochs: 5
+
+# FP16 Activation Fault Injection Configuration
+fp_activation_fault_injection:
+  enabled: true
+  target_type: activation
+  probability: 10.0                   # 10% of activations corrupted
+  apply_during: "eval"                # Test resilience during evaluation
+
+  # Standard PyTorch layers to target
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+    - "ReLU"
+
+  # FP16-specific parameters
+  fp_precision: "fp16"                # FP16 format (half precision)
+  fp_target_region: "mantissa"        # Target mantissa bits
+  fp_bit_position: null               # Random bit within mantissa
+
+  # Monitoring
+  track_statistics: true
+  verbose: true
+
+# FP16 Weight Fault Injection Configuration
+fp_weight_fault_injection:
+  enabled: true
+  target_type: weight
+  probability: 1.0                    # 1% of weights corrupted
+  apply_during: "eval"                # Only during evaluation
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+  fp_precision: "fp16"
+  fp_target_region: "random"          # Random region (sign, exponent, or mantissa)
+  fp_bit_position: null
+  track_statistics: true
+  verbose: true
+
+# Experiment configuration
+experiment:
+  name: "fp16_mixed_precision_fault_injection"
+  save_dir: "./experiments"
+  save_frequency: 10
+
+# Checkpoint configuration
+checkpoint:
+  resume: null
+  save_best: true
