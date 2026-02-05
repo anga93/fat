@@ -1,0 +1,46 @@
+# Smoke test configuration optimized for M4 Pro MacBook
+# Fast training with full hardware utilization
+
+seed:
+  enabled: true
+  value: 42
+  deterministic: false  # Faster than deterministic mode
+
+dataset:
+  name: "cifar10"
+  root: "./data"
+  download: true
+  num_workers: 8  # M4 Pro has 14 cores, use 8 for data loading
+  val_split: 0.0  # Skip validation for faster smoke test
+
+model:
+  name: "resnet20" 
+training:
+  batch_size: 256  
+  epochs: 5 
+
+optimizer:
+  name: "sgd"
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  name: "cosine"
+  T_max: 5
+  warmup_epochs: 0  
+
+loss:
+  name: "cross_entropy"
+
+amp:
+  enabled: false  # MPS has limited AMP support in PyTorch 2.9
+
+tensorboard:
+  enabled: false  # Disable logging overhead
+
+progress:
+  enabled: true
+
+checkpoint:
+  enabled: false  # No checkpointing for smoke test

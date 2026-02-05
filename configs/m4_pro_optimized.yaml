@@ -1,0 +1,51 @@
+# Full training configuration optimized for M4 Pro MacBook
+# Maximum performance for production training runs
+
+seed:
+  enabled: true
+  value: 42
+  deterministic: false
+
+dataset:
+  name: "cifar10"
+  root: "./data"
+  download: true
+  num_workers: 10  # Use most cores for data loading
+  val_split: 0.1   # Keep validation for monitoring
+
+model:
+  name: "resnet20"
+
+training:
+  batch_size: 512  # Maximize GPU utilization (reduce if OOM)
+  epochs: 200
+
+optimizer:
+  name: "sgd"
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  name: "cosine"
+  T_max: 200
+  warmup_epochs: 5
+
+loss:
+  name: "cross_entropy"
+
+amp:
+  enabled: false  # MPS AMP support still maturing
+
+tensorboard:
+  enabled: true   # Enable for monitoring
+  log_dir: "./runs"
+
+progress:
+  enabled: true
+
+checkpoint:
+  enabled: true
+  dir: "./experiments"
+  save_frequency: 50
+  save_best: true
