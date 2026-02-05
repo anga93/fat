@@ -31,6 +31,9 @@ class FaultInjectionConfig:
                        from 0 to `probability`. 0 = no warmup (default).
         warmup_schedule: Shape of the warmup ramp. "linear" (default) or "cosine".
                          Only meaningful when warmup_epochs > 0.
+        fp_precision: Floating-point precision - "fp32" or "fp16" (for FP injectors).
+        fp_target_region: IEEE-754 region - "sign", "exponent", "mantissa", "random".
+        fp_bit_position: Specific bit within region (None = random).
 
     Example:
         ```python
@@ -61,6 +64,12 @@ class FaultInjectionConfig:
     warmup_epochs: int = 0
     warmup_schedule: str = "linear"
 
+    # Floating-point specific parameters (for FP injectors)
+    fp_precision: str = "fp32"              # "fp32" or "fp16"
+    fp_target_region: str = "mantissa"      # "sign", "exponent", "mantissa", "random"
+    fp_bit_position: Optional[int] = None   # Specific bit within region (None = random)
+
+    # Valid values for validation
     _VALID_TARGET_TYPES: List[str] = field(
         default_factory=lambda: ["activation", "weight"],
         repr=False,
@@ -89,6 +98,14 @@ class FaultInjectionConfig:
     )
     _VALID_WARMUP_SCHEDULES: List[str] = field(
         default_factory=lambda: ["linear", "cosine"],
+        repr=False,
+    )
+    _VALID_FP_PRECISIONS: List[str] = field(
+        default_factory=lambda: ["fp32", "fp16"],
+        repr=False,
+    )
+    _VALID_FP_REGIONS: List[str] = field(
+        default_factory=lambda: ["sign", "exponent", "mantissa", "random"],
         repr=False,
     )
 
@@ -157,6 +174,9 @@ class FaultInjectionConfig:
             step_interval=config.get("step_interval", 1),
             warmup_epochs=config.get("warmup_epochs", 0),
             warmup_schedule=config.get("warmup_schedule", "linear"),
+            fp_precision=config.get("fp_precision", "fp32"),
+            fp_target_region=config.get("fp_target_region", "mantissa"),
+            fp_bit_position=config.get("fp_bit_position", None),
         )
 
     def validate(self) -> None:
@@ -219,6 +239,24 @@ class FaultInjectionConfig:
             raise ValueError(
                 f"warmup_schedule must be one of {self._VALID_WARMUP_SCHEDULES}, "
                 f"got '{self.warmup_schedule}'"
+            )
+
+        # Validate FP-specific parameters
+        if self.fp_precision not in self._VALID_FP_PRECISIONS:
+            raise ValueError(
+                f"fp_precision must be one of {self._VALID_FP_PRECISIONS}, "
+                f"got '{self.fp_precision}'"
+            )
+
+        if self.fp_target_region not in self._VALID_FP_REGIONS:
+            raise ValueError(
+                f"fp_target_region must be one of {self._VALID_FP_REGIONS}, "
+                f"got '{self.fp_target_region}'"
+            )
+
+        if self.fp_bit_position is not None and self.fp_bit_position < 0:
+            raise ValueError(
+                f"fp_bit_position must be non-negative or None, got {self.fp_bit_position}"
             )
 
     def should_inject_during_training(self) -> bool:
@@ -311,4 +349,7 @@ class FaultInjectionConfig:
             "step_interval": self.step_interval,
             "warmup_epochs": self.warmup_epochs,
             "warmup_schedule": self.warmup_schedule,
+            "fp_precision": self.fp_precision,
+            "fp_target_region": self.fp_target_region,
+            "fp_bit_position": self.fp_bit_position,
         }
