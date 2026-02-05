@@ -29,6 +29,8 @@ from .fault_injection import (
     FaultInjectionConfig,
     ActivationFaultInjector,
     WeightFaultInjector,
+    FPActivationInjector,
+    FPWeightInjector,
     FaultStatistics,
 )
 
@@ -137,11 +139,20 @@ class Trainer:
         self.act_fault_injector: Optional[ActivationFaultInjector] = None
         self.act_fault_config: Optional[FaultInjectionConfig] = None
         self.act_fault_statistics: Optional[FaultStatistics] = None
-        
+
         self.weight_fault_injector: Optional[WeightFaultInjector] = None
         self.weight_fault_config: Optional[FaultInjectionConfig] = None
         self.weight_fault_statistics: Optional[FaultStatistics] = None
-        
+
+        # Floating-point fault injectors (for FP32/FP16 models)
+        self.fp_act_fault_injector: Optional[FPActivationInjector] = None
+        self.fp_act_fault_config: Optional[FaultInjectionConfig] = None
+        self.fp_act_fault_statistics: Optional[FaultStatistics] = None
+
+        self.fp_weight_fault_injector: Optional[FPWeightInjector] = None
+        self.fp_weight_fault_config: Optional[FaultInjectionConfig] = None
+        self.fp_weight_fault_statistics: Optional[FaultStatistics] = None
+
         self._setup_fault_injection(config)
 
         # Resume from checkpoint if specified
@@ -159,31 +170,33 @@ class Trainer:
 
     def _setup_fault_injection(self, config: Dict[str, Any]) -> None:
         """Setup fault injection if configured.
-        
+
         Supports both activation and weight fault injection independently.
         Each can be enabled/disabled separately in the config.
-        
+
+        Supports both quantized (Brevitas) and floating-point (FP32/FP16) models.
+
         Args:
             config: Full configuration dictionary.
         """
-        # Setup activation fault injection
+        # Setup activation fault injection (quantized models)
         act_config = config.get("activation_fault_injection", {})
         if act_config.get("enabled", False):
             self.act_fault_config = FaultInjectionConfig.from_dict(act_config)
             self.act_fault_injector = ActivationFaultInjector()
             self.model = self.act_fault_injector.inject(self.model, self.act_fault_config)
-            
+
             if self.act_fault_config.verbose:
                 # Print model architecture with injection layers
                 for name, module in self.model.named_modules():
                     print(f"{name}: {module}")
-            
+
             # Setup statistics tracking if enabled
             if self.act_fault_config.track_statistics:
                 num_layers = self.act_fault_injector.get_num_layers(self.model)
                 self.act_fault_statistics = FaultStatistics(num_layers=num_layers)
                 self.act_fault_injector.set_statistics(self.model, self.act_fault_statistics)
-            
+
             # Log setup
             if self.act_fault_config.verbose:
                 num_layers = self.act_fault_injector.get_num_layers(self.model)
@@ -191,25 +204,25 @@ class Trainer:
                 print(f"  Probability: {self.act_fault_config.probability}%")
                 print(f"  Injection type: {self.act_fault_config.injection_type}")
                 print(f"  Apply during: {self.act_fault_config.apply_during}")
-        
-        # Setup weight fault injection
+
+        # Setup weight fault injection (quantized models)
         weight_config = config.get("weight_fault_injection", {})
         if weight_config.get("enabled", False):
             self.weight_fault_config = FaultInjectionConfig.from_dict(weight_config)
             self.weight_fault_injector = WeightFaultInjector()
             self.model = self.weight_fault_injector.inject(self.model, self.weight_fault_config)
-            
+
             if self.weight_fault_config.verbose:
                 # Print model architecture with weight hooks
                 for name, module in self.model.named_modules():
                     print(f"{name}: {module}")
-            
+
             # Setup statistics tracking if enabled
             if self.weight_fault_config.track_statistics:
                 num_layers = self.weight_fault_injector.get_num_layers(self.model)
                 self.weight_fault_statistics = FaultStatistics(num_layers=num_layers)
                 self.weight_fault_injector.set_statistics(self.model, self.weight_fault_statistics)
-            
+
             # Log setup
             if self.weight_fault_config.verbose:
                 num_layers = self.weight_fault_injector.get_num_layers(self.model)
@@ -217,6 +230,58 @@ class Trainer:
                 print(f"  Probability: {self.weight_fault_config.probability}%")
                 print(f"  Injection type: {self.weight_fault_config.injection_type}")
                 print(f"  Apply during: {self.weight_fault_config.apply_during}")
+
+        # Setup FP activation fault injection (full-precision FP32/FP16 models)
+        fp_act_config = config.get("fp_activation_fault_injection", {})
+        if fp_act_config.get("enabled", False):
+            self.fp_act_fault_config = FaultInjectionConfig.from_dict(fp_act_config)
+            self.fp_act_fault_injector = FPActivationInjector()
+            self.model = self.fp_act_fault_injector.inject(self.model, self.fp_act_fault_config)
+
+            if self.fp_act_fault_config.verbose:
+                for name, module in self.model.named_modules():
+                    print(f"{name}: {module}")
+
+            # Setup statistics tracking if enabled
+            if self.fp_act_fault_config.track_statistics:
+                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
+                self.fp_act_fault_statistics = FaultStatistics(num_layers=num_layers)
+                self.fp_act_fault_injector.set_statistics(self.model, self.fp_act_fault_statistics)
+
+            # Log setup
+            if self.fp_act_fault_config.verbose:
+                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
+                print(f"FP Activation fault injection enabled: {num_layers} injection layers added")
+                print(f"  Probability: {self.fp_act_fault_config.probability}%")
+                print(f"  Precision: {self.fp_act_fault_config.fp_precision}")
+                print(f"  Target region: {self.fp_act_fault_config.fp_target_region}")
+                print(f"  Apply during: {self.fp_act_fault_config.apply_during}")
+
+        # Setup FP weight fault injection (full-precision FP32/FP16 models)
+        fp_weight_config = config.get("fp_weight_fault_injection", {})
+        if fp_weight_config.get("enabled", False):
+            self.fp_weight_fault_config = FaultInjectionConfig.from_dict(fp_weight_config)
+            self.fp_weight_fault_injector = FPWeightInjector()
+            self.model = self.fp_weight_fault_injector.inject(self.model, self.fp_weight_fault_config)
+
+            if self.fp_weight_fault_config.verbose:
+                for name, module in self.model.named_modules():
+                    print(f"{name}: {module}")
+
+            # Setup statistics tracking if enabled
+            if self.fp_weight_fault_config.track_statistics:
+                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
+                self.fp_weight_fault_statistics = FaultStatistics(num_layers=num_layers)
+                self.fp_weight_fault_injector.set_statistics(self.model, self.fp_weight_fault_statistics)
+
+            # Log setup
+            if self.fp_weight_fault_config.verbose:
+                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
+                print(f"FP Weight fault injection enabled: {num_layers} injection hooks added")
+                print(f"  Probability: {self.fp_weight_fault_config.probability}%")
+                print(f"  Precision: {self.fp_weight_fault_config.fp_precision}")
+                print(f"  Target region: {self.fp_weight_fault_config.fp_target_region}")
+                print(f"  Apply during: {self.fp_weight_fault_config.apply_during}")
 
     @property
     def has_validation(self) -> bool:
