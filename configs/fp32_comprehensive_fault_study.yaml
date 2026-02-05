@@ -1,0 +1,80 @@
+# Comprehensive fault injection study configuration
+# Demonstrates all FP fault injection capabilities for research
+
+# Model configuration
+model:
+  architecture: "resnet18"
+  num_classes: 10
+  pretrained: false
+
+# Dataset configuration
+dataset:
+  name: "cifar10"
+  data_dir: "./data"
+  batch_size: 128
+  num_workers: 4
+
+# Training configuration
+training:
+  epochs: 50
+  device: "cuda"
+
+# Optimizer configuration
+optimizer:
+  type: "sgd"
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0005
+
+# Scheduler configuration
+scheduler:
+  type: "cosine"
+  warmup_epochs: 5
+
+# FP32 Activation Fault Injection - Sign Bit Faults
+fp_activation_fault_injection:
+  enabled: true
+  target_type: activation
+  probability: 3.0
+  apply_during: "both"                # During training and evaluation
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+    - "ReLU"
+    - "ReLU6"
+  fp_precision: "fp32"
+  fp_target_region: "sign"            # Flip sign bits (catastrophic!)
+  fp_bit_position: 0                  # Always flip the sign bit
+  track_statistics: true
+  verbose: true
+
+# FP32 Weight Fault Injection - Mantissa Bit Faults
+fp_weight_fault_injection:
+  enabled: true
+  target_type: weight
+  probability: 0.5
+  apply_during: "both"
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+  fp_precision: "fp32"
+  fp_target_region: "mantissa"        # Mantissa faults (less severe)
+  fp_bit_position: null               # Random mantissa bit
+  track_statistics: true
+  verbose: true
+
+# Experiment configuration
+experiment:
+  name: "fp32_comprehensive_fault_study"
+  save_dir: "./experiments"
+  save_frequency: 5
+
+# Checkpoint configuration
+checkpoint:
+  resume: null
+  save_best: true
+
+# Logging
+logging:
+  log_interval: 50
+  tensorboard: true
