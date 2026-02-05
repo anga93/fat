@@ -1,0 +1,81 @@
+# Example configuration for FP32 activation fault injection
+# For use with full-precision (non-quantized) FP32 models
+
+# Model configuration
+model:
+  architecture: "resnet18"
+  num_classes: 10
+  pretrained: false
+
+# Dataset configuration
+dataset:
+  name: "cifar10"
+  data_dir: "./data"
+  batch_size: 128
+  num_workers: 4
+
+# Training configuration
+training:
+  epochs: 100
+  device: "cuda"
+
+# Optimizer configuration
+optimizer:
+  type: "sgd"
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0005
+
+# Scheduler configuration
+scheduler:
+  type: "cosine"
+  warmup_epochs: 5
+
+# FP32 Activation Fault Injection Configuration
+fp_activation_fault_injection:
+  enabled: true
+  target_type: activation
+  probability: 5.0                    # 5% of activations corrupted
+  apply_during: "train"               # "train", "eval", or "both"
+
+  # Standard PyTorch layers to target (FP32 models)
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+    - "ReLU"
+    - "BatchNorm2d"
+
+  # FP-specific parameters (IEEE-754 bit-level)
+  fp_precision: "fp32"                # FP32 format
+  fp_target_region: "exponent"        # "sign", "exponent", "mantissa", or "random"
+  fp_bit_position: null               # null = random bit, or specific bit index
+
+  # Monitoring
+  track_statistics: true
+  verbose: true
+
+# Optional: FP32 Weight Fault Injection (disabled by default)
+fp_weight_fault_injection:
+  enabled: false
+  target_type: weight
+  probability: 2.0
+  apply_during: "both"
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+  fp_precision: "fp32"
+  fp_target_region: "mantissa"
+  fp_bit_position: null
+  track_statistics: true
+  verbose: false
+
+# Experiment configuration
+experiment:
+  name: "fp32_fault_injection_exponent"
+  save_dir: "./experiments"
+  save_frequency: 10
+
+# Checkpoint configuration
+checkpoint:
+  resume: null
+  save_best: true
