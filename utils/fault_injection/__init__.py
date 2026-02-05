@@ -1,12 +1,15 @@
-"""Fault injection framework for quantized neural networks.
+"""Fault injection framework for quantized and floating-point neural networks.
 
 This module provides tools for injecting activation and weight faults into quantized
-neural networks to enable fault-aware training (FAT) and fault resilience evaluation.
+and full-precision neural networks to enable fault-aware training (FAT) and fault
+resilience evaluation.
 
 Main Components:
     - FaultInjectionConfig: Configuration dataclass for fault injection parameters (supports activation and weight)
-    - ActivationFaultInjector: Runtime model transformer that adds activation fault injection layers
-    - WeightFaultInjector: Runtime model transformer that adds weight fault injection hooks
+    - ActivationFaultInjector: Runtime model transformer that adds activation fault injection layers (quantized)
+    - WeightFaultInjector: Runtime model transformer that adds weight fault injection hooks (quantized)
+    - FPActivationInjector: Activation fault injector for FP32/FP16 models (full-precision)
+    - FPWeightInjector: Weight fault injector for FP32/FP16 models (full-precision)
     - FaultInjector: Backward compatibility alias for ActivationFaultInjector (deprecated)
     - FaultStatistics: Statistics tracking for injection analysis
     - QuantActivationFaultInjectionLayer: Layer that injects activation faults into QuantTensor activations
@@ -16,6 +19,11 @@ Injection Strategies:
     - LSBFlipStrategy: Flips least significant bits
     - MSBFlipStrategy: Flips most significant bits
     - FullFlipStrategy: Flips all bits
+
+Floating-Point Bit-Level Injection:
+    - FPActivationFaultInjectionLayer: IEEE-754 bit-flip for FP32/FP16 activations
+    - FPWeightFaultInjectionHook: IEEE-754 bit-flip for FP32/FP16 weights
+    - Supports region-specific faults (sign, exponent, mantissa)
 
 Example:
     ```python
@@ -86,6 +94,13 @@ from .strategies import (
 from .weights.weight_hooks import WeightFaultInjectionHook
 from .weights.weight_functions import WeightFaultInjectionFunction
 
+# Floating-point injectors and utilities
+from .fp_activation_injector import FPActivationInjector
+from .fp_weight_injector import FPWeightInjector
+from .fp_layers.fp_activation_layer import FPActivationFaultInjectionLayer
+from .fp_layers.fp_weight_hook import FPWeightFaultInjectionHook
+from . import fp_bit_flip_utils
+
 # Backward compatibility alias (deprecated)
 FaultInjector = ActivationFaultInjector
 
@@ -94,12 +109,16 @@ __all__ = [
     "FaultInjectionConfig",
     # Base classes
     "BaseFaultInjector",
-    # Injectors
+    # Quantized model injectors
     "ActivationFaultInjector",
     "WeightFaultInjector",
     "FaultInjector",  # Backward compatibility (deprecated)
+    # Floating-point model injectors
+    "FPActivationInjector",
+    "FPWeightInjector",
     # Layers
     "QuantActivationFaultInjectionLayer",
+    "FPActivationFaultInjectionLayer",
     # Statistics
     "FaultStatistics",
     "LayerStatistics",
@@ -113,4 +132,7 @@ __all__ = [
     # Weight injection components
     "WeightFaultInjectionHook",
     "WeightFaultInjectionFunction",
+    "FPWeightFaultInjectionHook",
+    # Utilities
+    "fp_bit_flip_utils",
 ]
