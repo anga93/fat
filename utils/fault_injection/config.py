@@ -23,6 +23,9 @@ class FaultInjectionConfig:
         target_layers: List of layer types to inject (context depends on target_type).
         track_statistics: Enable statistics tracking (RMSE, cosine similarity).
         verbose: Print injection details.
+        fp_precision: Floating-point precision - "fp32" or "fp16" (for FP injectors).
+        fp_target_region: IEEE-754 region - "sign", "exponent", "mantissa", "random".
+        fp_bit_position: Specific bit within region (None = random).
 
     Example:
         ```python
@@ -47,6 +50,11 @@ class FaultInjectionConfig:
     track_statistics: bool = False
     verbose: bool = False
 
+    # Floating-point specific parameters (for FP injectors)
+    fp_precision: str = "fp32"              # "fp32" or "fp16"
+    fp_target_region: str = "mantissa"      # "sign", "exponent", "mantissa", "random"
+    fp_bit_position: Optional[int] = None   # Specific bit within region (None = random)
+
     # Valid values for validation
     _VALID_TARGET_TYPES: List[str] = field(
         default_factory=lambda: ["activation", "weight"],
@@ -66,6 +74,14 @@ class FaultInjectionConfig:
     )
     _VALID_WEIGHT_LAYERS: List[str] = field(
         default_factory=lambda: ["QuantConv2d", "QuantLinear"],
+        repr=False,
+    )
+    _VALID_FP_PRECISIONS: List[str] = field(
+        default_factory=lambda: ["fp32", "fp16"],
+        repr=False,
+    )
+    _VALID_FP_REGIONS: List[str] = field(
+        default_factory=lambda: ["sign", "exponent", "mantissa", "random"],
         repr=False,
     )
 
@@ -120,6 +136,9 @@ class FaultInjectionConfig:
             target_layers=config.get("target_layers", default_layers),
             track_statistics=config.get("track_statistics", False),
             verbose=config.get("verbose", False),
+            fp_precision=config.get("fp_precision", "fp32"),
+            fp_target_region=config.get("fp_target_region", "mantissa"),
+            fp_bit_position=config.get("fp_bit_position", None),
         )
 
     def validate(self) -> None:
@@ -162,6 +181,24 @@ class FaultInjectionConfig:
                     f"got '{layer}'"
                 )
 
+        # Validate FP-specific parameters
+        if self.fp_precision not in self._VALID_FP_PRECISIONS:
+            raise ValueError(
+                f"fp_precision must be one of {self._VALID_FP_PRECISIONS}, "
+                f"got '{self.fp_precision}'"
+            )
+
+        if self.fp_target_region not in self._VALID_FP_REGIONS:
+            raise ValueError(
+                f"fp_target_region must be one of {self._VALID_FP_REGIONS}, "
+                f"got '{self.fp_target_region}'"
+            )
+
+        if self.fp_bit_position is not None and self.fp_bit_position < 0:
+            raise ValueError(
+                f"fp_bit_position must be non-negative or None, got {self.fp_bit_position}"
+            )
+
     def should_inject_during_training(self) -> bool:
         """Check if injection should occur during training.
 
@@ -193,4 +230,7 @@ class FaultInjectionConfig:
             "target_layers": self.target_layers,
             "track_statistics": self.track_statistics,
             "verbose": self.verbose,
+            "fp_precision": self.fp_precision,
+            "fp_target_region": self.fp_target_region,
+            "fp_bit_position": self.fp_bit_position,
         }
