@@ -278,6 +278,56 @@ class Trainer:
                 self.weight_fault_statistics = FaultStatistics(num_layers=num_layers)
                 self.weight_fault_injector.set_statistics(self.model, self.weight_fault_statistics)
 
+        # Setup FP activation fault injection (full-precision FP32/FP16 models)
+        fp_act_config = config.get("fp_activation_fault_injection", {})
+        if fp_act_config.get("enabled", False):
+            self.fp_act_fault_config = FaultInjectionConfig.from_dict(fp_act_config)
+            self.fp_act_fault_injector = FPActivationInjector()
+            self.model = self.fp_act_fault_injector.inject(self.model, self.fp_act_fault_config)
+
+            if self.fp_act_fault_config.verbose:
+                for name, module in self.model.named_modules():
+                    print(f"{name}: {module}")
+
+            # Setup statistics tracking if enabled
+            if self.fp_act_fault_config.track_statistics:
+                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
+                self.fp_act_fault_statistics = FaultStatistics(num_layers=num_layers)
+                self.fp_act_fault_injector.set_statistics(self.model, self.fp_act_fault_statistics)
+
+            if self.fp_act_fault_config.verbose:
+                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
+                print(f"FP Activation fault injection enabled: {num_layers} injection layers added")
+                print(f"  Probability: {self.fp_act_fault_config.probability}%")
+                print(f"  Precision: {self.fp_act_fault_config.fp_precision}")
+                print(f"  Target region: {self.fp_act_fault_config.fp_target_region}")
+                print(f"  Apply during: {self.fp_act_fault_config.apply_during}")
+
+        # Setup FP weight fault injection (full-precision FP32/FP16 models)
+        fp_weight_config = config.get("fp_weight_fault_injection", {})
+        if fp_weight_config.get("enabled", False):
+            self.fp_weight_fault_config = FaultInjectionConfig.from_dict(fp_weight_config)
+            self.fp_weight_fault_injector = FPWeightInjector()
+            self.model = self.fp_weight_fault_injector.inject(self.model, self.fp_weight_fault_config)
+
+            if self.fp_weight_fault_config.verbose:
+                for name, module in self.model.named_modules():
+                    print(f"{name}: {module}")
+
+            # Setup statistics tracking if enabled
+            if self.fp_weight_fault_config.track_statistics:
+                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
+                self.fp_weight_fault_statistics = FaultStatistics(num_layers=num_layers)
+                self.fp_weight_fault_injector.set_statistics(self.model, self.fp_weight_fault_statistics)
+
+            if self.fp_weight_fault_config.verbose:
+                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
+                print(f"FP Weight fault injection enabled: {num_layers} injection hooks added")
+                print(f"  Probability: {self.fp_weight_fault_config.probability}%")
+                print(f"  Precision: {self.fp_weight_fault_config.fp_precision}")
+                print(f"  Target region: {self.fp_weight_fault_config.fp_target_region}")
+                print(f"  Apply during: {self.fp_weight_fault_config.apply_during}")
+
     def _restore_fault_injection_state(self, state: Dict[str, Any]) -> None:
         """Restore fault injection warmup progress from a checkpoint.
 
@@ -372,73 +422,6 @@ class Trainer:
         if self.weight_fault_config is not None:
             warmup = max(warmup, self.weight_fault_config.warmup_epochs)
         return warmup
-=======
-            # Setup statistics tracking if enabled
-            if self.weight_fault_config.track_statistics:
-                num_layers = self.weight_fault_injector.get_num_layers(self.model)
-                self.weight_fault_statistics = FaultStatistics(num_layers=num_layers)
-                self.weight_fault_injector.set_statistics(self.model, self.weight_fault_statistics)
-
-            # Log setup
-            if self.weight_fault_config.verbose:
-                num_layers = self.weight_fault_injector.get_num_layers(self.model)
-                print(f"Weight fault injection enabled: {num_layers} injection hooks added")
-                print(f"  Probability: {self.weight_fault_config.probability}%")
-                print(f"  Injection type: {self.weight_fault_config.injection_type}")
-                print(f"  Apply during: {self.weight_fault_config.apply_during}")
->>>>>>> 9053556 (Integrate FP fault injectors into Trainer)
-
-        # Setup FP activation fault injection (full-precision FP32/FP16 models)
-        fp_act_config = config.get("fp_activation_fault_injection", {})
-        if fp_act_config.get("enabled", False):
-            self.fp_act_fault_config = FaultInjectionConfig.from_dict(fp_act_config)
-            self.fp_act_fault_injector = FPActivationInjector()
-            self.model = self.fp_act_fault_injector.inject(self.model, self.fp_act_fault_config)
-
-            if self.fp_act_fault_config.verbose:
-                for name, module in self.model.named_modules():
-                    print(f"{name}: {module}")
-
-            # Setup statistics tracking if enabled
-            if self.fp_act_fault_config.track_statistics:
-                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
-                self.fp_act_fault_statistics = FaultStatistics(num_layers=num_layers)
-                self.fp_act_fault_injector.set_statistics(self.model, self.fp_act_fault_statistics)
-
-            # Log setup
-            if self.fp_act_fault_config.verbose:
-                num_layers = self.fp_act_fault_injector.get_num_layers(self.model)
-                print(f"FP Activation fault injection enabled: {num_layers} injection layers added")
-                print(f"  Probability: {self.fp_act_fault_config.probability}%")
-                print(f"  Precision: {self.fp_act_fault_config.fp_precision}")
-                print(f"  Target region: {self.fp_act_fault_config.fp_target_region}")
-                print(f"  Apply during: {self.fp_act_fault_config.apply_during}")
-
-        # Setup FP weight fault injection (full-precision FP32/FP16 models)
-        fp_weight_config = config.get("fp_weight_fault_injection", {})
-        if fp_weight_config.get("enabled", False):
-            self.fp_weight_fault_config = FaultInjectionConfig.from_dict(fp_weight_config)
-            self.fp_weight_fault_injector = FPWeightInjector()
-            self.model = self.fp_weight_fault_injector.inject(self.model, self.fp_weight_fault_config)
-
-            if self.fp_weight_fault_config.verbose:
-                for name, module in self.model.named_modules():
-                    print(f"{name}: {module}")
-
-            # Setup statistics tracking if enabled
-            if self.fp_weight_fault_config.track_statistics:
-                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
-                self.fp_weight_fault_statistics = FaultStatistics(num_layers=num_layers)
-                self.fp_weight_fault_injector.set_statistics(self.model, self.fp_weight_fault_statistics)
-
-            # Log setup
-            if self.fp_weight_fault_config.verbose:
-                num_layers = self.fp_weight_fault_injector.get_num_layers(self.model)
-                print(f"FP Weight fault injection enabled: {num_layers} injection hooks added")
-                print(f"  Probability: {self.fp_weight_fault_config.probability}%")
-                print(f"  Precision: {self.fp_weight_fault_config.fp_precision}")
-                print(f"  Target region: {self.fp_weight_fault_config.fp_target_region}")
-                print(f"  Apply during: {self.fp_weight_fault_config.apply_during}")
 
     @property
     def has_validation(self) -> bool:
