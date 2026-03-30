@@ -159,7 +159,7 @@ class FPWeightFaultInjectionHook:
 
         # Update statistics
         self.statistics.total_activations += total_elements  # Using same counter for consistency
-        self.statistics.total_faults += num_faults
+        self.statistics.injected_count += num_faults
         self.statistics.rmse_sum += rmse
         self.statistics.cosine_similarity_sum += cos_sim
         self.statistics.sample_count += 1

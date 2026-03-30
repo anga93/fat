@@ -71,8 +71,8 @@ class FPActivationFaultInjectionLayer(nn.Module):
         self.track_statistics = track_statistics
 
         self.statistics: Optional[LayerStatistics] = None
-        if track_statistics:
-            self.statistics = LayerStatistics()
+        if track_statistics and layer_id is not None:
+            self.statistics = LayerStatistics(layer_id=layer_id)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -157,7 +157,7 @@ class FPActivationFaultInjectionLayer(nn.Module):
 
         # Update statistics
         self.statistics.total_activations += total_elements
-        self.statistics.total_faults += num_faults
+        self.statistics.injected_count += num_faults
         self.statistics.rmse_sum += rmse
         self.statistics.cosine_similarity_sum += cos_sim
         self.statistics.sample_count += 1

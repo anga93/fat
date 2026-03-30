@@ -219,7 +219,7 @@ class FPActivationInjector(BaseFaultInjector):
             for child in module.children():
                 if isinstance(child, _FPActivationFaultInjectionWrapper):
                     inj_layer = child.injection_layer
-                    inj_layer.statistics = statistics.layers[layer_id]
+                    inj_layer.statistics = statistics.layer_stats[layer_id]
                     layer_id += 1
                 else:
                     _set_statistics_recursive(child)
