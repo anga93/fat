@@ -1,0 +1,49 @@
+# Configuration for evaluating FP16 models with mantissa bit-flip faults
+
+# Model configuration
+model:
+  architecture: "resnet18"
+  num_classes: 10
+  pretrained: false
+
+# Dataset configuration
+dataset:
+  name: "cifar10"
+  data_dir: "./data"
+  batch_size: 128
+  num_workers: 4
+
+# Training/Evaluation configuration
+training:
+  device: "cuda"
+  use_amp: false  # No AMP, we manually use FP16
+
+# FP16 Activation Fault Injection (Mantissa)
+fp_activation_fault_injection:
+  enabled: true
+  target_type: activation
+  probability: 5.0              # 5% of activations
+  apply_during: "eval"          # Only during evaluation
+
+  # Standard PyTorch layers (for FP16 models)
+  target_layers:
+    - "Conv2d"
+    - "Linear"
+    - "ReLU"
+
+  # FP16 Mantissa fault configuration
+  fp_precision: "fp16"          # FP16 format
+  fp_target_region: "mantissa"  # Target mantissa bits (10 bits)
+  fp_bit_position: null         # Random bit within mantissa
+
+  track_statistics: true
+  verbose: true
+
+# Experiment configuration
+experiment:
+  name: "fp16_mantissa_fault_evaluation"
+  save_dir: "./experiments"
+
+# Checkpoint configuration
+checkpoint:
+  resume: null  # Path to checkpoint (or null for random weights)
