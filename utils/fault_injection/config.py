@@ -100,6 +100,15 @@ class FaultInjectionConfig:
         default_factory=lambda: ["linear", "cosine"],
         repr=False,
     )
+    # Valid standard PyTorch layers for FP injection
+    _VALID_FP_ACTIVATION_LAYERS: List[str] = field(
+        default_factory=lambda: ["Conv2d", "Linear", "ReLU", "ReLU6", "LeakyReLU", "GELU", "SiLU", "Tanh", "Sigmoid", "BatchNorm2d", "LayerNorm"],
+        repr=False,
+    )
+    _VALID_FP_WEIGHT_LAYERS: List[str] = field(
+        default_factory=lambda: ["Conv2d", "Linear", "BatchNorm2d", "LayerNorm"],
+        repr=False,
+    )
     _VALID_FP_PRECISIONS: List[str] = field(
         default_factory=lambda: ["fp32", "fp16"],
         repr=False,
@@ -208,11 +217,25 @@ class FaultInjectionConfig:
                 f"got '{self.apply_during}'"
             )
 
-        valid_layers = (
-            self._VALID_ACTIVATION_LAYERS
-            if self.target_type == "activation"
-            else self._VALID_WEIGHT_LAYERS
-        )
+        # Determine if we're using FP injection or quantized injection
+        # Check if any target layer is in FP lists (Conv2d, Linear, ReLU, etc.)
+        fp_activation_layers_used = any(layer in self._VALID_FP_ACTIVATION_LAYERS for layer in self.target_layers)
+        fp_weight_layers_used = any(layer in self._VALID_FP_WEIGHT_LAYERS for layer in self.target_layers)
+        is_fp_injection = fp_activation_layers_used or fp_weight_layers_used
+
+        # Select appropriate validation list
+        if is_fp_injection:
+            # Using FP injection (standard PyTorch layers)
+            valid_layers = (
+                self._VALID_FP_ACTIVATION_LAYERS if self.target_type == "activation"
+                else self._VALID_FP_WEIGHT_LAYERS
+            )
+        else:
+            # Using quantized injection (Brevitas layers)
+            valid_layers = (
+                self._VALID_ACTIVATION_LAYERS if self.target_type == "activation"
+                else self._VALID_WEIGHT_LAYERS
+            )
         for layer in self.target_layers:
             if layer not in valid_layers:
                 raise ValueError(
