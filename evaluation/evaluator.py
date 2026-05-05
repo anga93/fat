@@ -16,6 +16,8 @@ from utils.fault_injection import (
     BaseFaultInjector,
     WeightFaultInjector,
     FaultStatistics,
+    FPActivationInjector,
+    FPWeightInjector,
 )
 
 
@@ -66,6 +68,9 @@ class Evaluator:
         self.show_progress = config.output.show_progress
         self.verbose = config.output.verbose
 
+        # Detect model dtype so inputs can be cast accordingly
+        self._model_dtype = next(model.parameters()).dtype
+
         self.setup_injectors()
 
     def setup_injectors(self) -> None:
@@ -75,12 +80,20 @@ class Evaluator:
         for injection in enabled_injections:
             fault_config = injection.to_fault_injection_config()
 
-            if injection.target_type == "activation":
-                injector = ActivationFaultInjector()
-            elif injection.target_type == "weight":
-                injector = WeightFaultInjector()
+            if injection.is_fp_injection():
+                # FP32/FP16 models: use IEEE-754 bit-flip injectors
+                if injection.target_type == "activation":
+                    injector = FPActivationInjector()
+                else:
+                    injector = FPWeightInjector()
             else:
-                raise ValueError(f"Unknown target type: {injection.target_type}")
+                # Quantized models (Brevitas): use integer-domain injectors
+                if injection.target_type == "activation":
+                    injector = ActivationFaultInjector()
+                elif injection.target_type == "weight":
+                    injector = WeightFaultInjector()
+                else:
+                    raise ValueError(f"Unknown target type: {injection.target_type}")
 
             self.injectors[injection.name] = injector
             self.model = injector.inject(model=self.model, config=fault_config)
@@ -173,7 +186,7 @@ class Evaluator:
             for data, target in tqdm(
                 self.test_loader, desc=desc, leave=False, disable=not self.show_progress
             ):
-                data = data.to(self.device)
+                data = data.to(self.device, dtype=self._model_dtype)
                 target = target.to(self.device)
 
                 output = self.model(data)

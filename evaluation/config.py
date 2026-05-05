@@ -37,6 +37,23 @@ class InjectionConfig:
     target_layers: List[str] = field(default_factory=list)
     target_layer_indices: Optional[List[int]] = None
     track_statistics: bool = True
+    # FP-specific parameters (ignored for quantized injectors)
+    fp_precision: str = "fp32"
+    fp_target_region: str = "mantissa"
+    fp_bit_position: Optional[int] = None
+
+    # Standard PyTorch layer names that indicate FP injection
+    _FP_LAYER_NAMES: frozenset = field(
+        default_factory=lambda: frozenset({
+            "Conv2d", "Linear", "ReLU", "ReLU6", "LeakyReLU", "GELU",
+            "SiLU", "Tanh", "Sigmoid", "BatchNorm2d", "LayerNorm",
+        }),
+        repr=False,
+    )
+
+    def is_fp_injection(self) -> bool:
+        """Return True if this config targets standard PyTorch FP layers."""
+        return any(layer in self._FP_LAYER_NAMES for layer in self.target_layers)
 
     def to_fault_injection_config(self) -> FaultInjectionConfig:
         """Convert to FaultInjectionConfig.
@@ -53,6 +70,9 @@ class InjectionConfig:
             target_layers=self.target_layers,
             track_statistics=self.track_statistics,
             verbose=False,
+            fp_precision=self.fp_precision,
+            fp_target_region=self.fp_target_region,
+            fp_bit_position=self.fp_bit_position,
         )
 
     @classmethod
@@ -74,6 +94,9 @@ class InjectionConfig:
             target_layers=config.get("target_layers", []),
             target_layer_indices=config.get("target_layer_indices", None),
             track_statistics=config.get("track_statistics", True),
+            fp_precision=config.get("fp_precision", "fp32"),
+            fp_target_region=config.get("fp_target_region", "mantissa"),
+            fp_bit_position=config.get("fp_bit_position", None),
         )
 
 
