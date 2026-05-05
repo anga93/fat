@@ -1,8 +1,8 @@
 # CIFAR-10 ResNet-20 Benchmark
 seed:
   enabled: true
-  value: 2
-  deterministic: true
+  value: 42
+  deterministic: false
 
 dataset:
   name: "cifar10"
@@ -21,7 +21,7 @@ optimizer:
   name: "sgd"
   learning_rate: 0.1
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 1e-4
 
 scheduler:
   name: "cosine"

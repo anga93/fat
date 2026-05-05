@@ -154,6 +154,18 @@ def main() -> None:
     # Load model and dataset
     model, test_loader = load_model_and_dataset(train_config, checkpoint_path, device)
 
+    # Convert to FP16 if any injection config requires it
+    fp16_injections = [
+        inj for inj in eval_config.get_enabled_injections()
+        if inj.is_fp_injection() and inj.fp_precision == "fp16"
+    ]
+    if fp16_injections:
+        if device.type in ("cuda", "mps"):
+            print("Converting model to FP16 (required by fp_precision='fp16')")
+            model = model.half()
+        else:
+            print("WARNING: FP16 requested but device is CPU — keeping FP32")
+
     # Create evaluator
     evaluator = Evaluator(
         config=eval_config,

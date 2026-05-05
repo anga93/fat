@@ -1,0 +1,43 @@
+# Evaluation config: FP16 mantissa fault sweep
+#
+# Sweeps fault probability across Conv2d and Linear layers of a
+# standard (non-quantized) FP16 model, targeting mantissa bits.
+#
+# Usage:
+#   python evaluate.py --eval-config configs/evaluation/fp16_mantissa_sweep.yaml
+
+name: "fp16_mantissa_sweep"
+description: "Sweep fault probability on FP16 mantissa bits (Conv2d + Linear)"
+
+checkpoint: "checkpoints/resnet20_cifar10_pretrained.pth"
+train_config: "configs/benchmark/cifar10_resnet20.yaml"
+
+baseline:
+  enabled: true
+  num_runs: 1
+
+injections:
+  - name: "fp16_activation_mantissa"
+    enabled: true
+    target_type: activation
+    probability: 5.0           # overridden by sweep probabilities below
+    target_layers:
+      - "Conv2d"
+      - "Linear"
+      - "ReLU"
+    # FP-specific
+    fp_precision: "fp16"
+    fp_target_region: "mantissa"   # sign | exponent | mantissa | random
+    fp_bit_position: null          # null = random bit within region
+    track_statistics: true
+
+runner:
+  type: "sweep"
+  probabilities: [0.0, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
+  num_runs: 3
+
+output:
+  formats: ["console", "json"]
+  save_path: "./results/{name}_{timestamp}.json"
+  verbose: true
+  show_progress: true
